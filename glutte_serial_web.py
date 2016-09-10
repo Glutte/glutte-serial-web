@@ -22,6 +22,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+from gevent.wsgi import WSGIServer
 from time import sleep
 from flask import Flask, render_template
 import serialrx
@@ -32,6 +33,10 @@ ser = serialrx.SerialRX()
 
 @app.route('/')
 def index():
+    return render_template('index.html')
+
+@app.route('/stream')
+def stream():
     def generate():
         while True:
             line = ser.get_line()
@@ -41,10 +46,10 @@ def index():
 
     return app.response_class(generate(), mimetype='text/plain')
 
-
 try:
     ser.start()
-    app.run()
+    http_server = WSGIServer(('', 5000), app)
+    http_server.serve_forever()
 except KeyboardInterrupt:
     print("Ctrl-C received, quitting")
 finally:

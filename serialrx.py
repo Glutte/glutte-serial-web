@@ -29,7 +29,7 @@ import collections
 
 SERIALPORT="/dev/ttyACM0"
 BAUDRATE=9600
-LINES_TO_KEEP=2000
+LINES_TO_KEEP=200
 
 class SerialRX(threading.Thread):
     def __init__(self):
