@@ -1,0 +1,10 @@
+[Unit]
+Description=glutte serial monitor web server
+After=syslog.target network.target
+
+[Service]
+Type=simple
+User=glutte
+WorkingDirectory=/home/glutte/glutte-serial-web
+ExecStart=/home/glutte/glutte-serial-web/bin/python /home/glutte/glutte-serial-web/glutte_serial_web.py
+
