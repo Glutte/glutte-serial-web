@@ -12,4 +12,4 @@ Step-by-step
     cd glutte-serial-web
     virtualenv .
     source bin/activate
-    pip install -f requirements.txt
+    pip install -r requirements.txt
