@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Matthias P. Braendli
+# Copyright (c) 2016 Matthias P. Braendli, Maximilien Cuony
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,35 +22,57 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from gevent.wsgi import WSGIServer
+from geventwebsocket.handler import WebSocketHandler
+from gevent import pywsgi, Timeout
 from time import sleep
 from flask import Flask, render_template
+from flask_sockets import Sockets
 import serialrx
 
 app = Flask(__name__)
+sockets = Sockets(app)
 
 ser = serialrx.SerialRX()
+
 
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/stream')
-def stream():
-    def generate():
-        while True:
-            line = ser.get_line()
-            if line is not None:
-                yield line
+
+@sockets.route('/stream')
+def stream(socket):
+
+    try:
+
+        queue = ser.register_client()
+
+        while not socket.closed:
+            # Force to check if the client is still here
+            try:
+                with Timeout(0.1, False):
+                    socket.receive()
+            except:
+                pass
+            try:
+                line = queue.popleft()
+                socket.send(line)
+            except IndexError:
+                pass
             sleep(0.1)
+    except:
+        raise
+    finally:
+        ser.unregister_client(queue)
 
-    return app.response_class(generate(), mimetype='text/plain')
+ser.start()
 
-try:
-    ser.start()
-    http_server = WSGIServer(('', 5000), app)
-    http_server.serve_forever()
-except KeyboardInterrupt:
-    print("Ctrl-C received, quitting")
-finally:
-    ser.stop()
+if __name__ == "__main__":
+    print("You're running in dev mode, only one client at a time will works ! Please use gunicorn to fix this :)")
+    try:
+        http_server = pywsgi.WSGIServer(('', 5000), app, handler_class=WebSocketHandler)
+        http_server.serve_forever()
+    except KeyboardInterrupt:
+        print("Ctrl-C received, quitting")
+    finally:
+        ser.stop()

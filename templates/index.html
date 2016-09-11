@@ -5,19 +5,18 @@
         <title>Moniteur de Glutte</title>
         <link rel="stylesheet" href="static/style.css" type="text/css" media="screen" charset="utf-8"/>
     </head>
-<body>
-    <h1>Ceci n'est pas une Glutte</h1>
-<pre id="output"></pre>
-<script>
-    var output = document.getElementById('output');
+    <body>
+        <h1>Ceci n'est pas une Glutte</h1>
+        <pre id="output"></pre>
+        <script>
+            var output = document.getElementById('output');
 
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', '{{ url_for('stream') }}');
-    xhr.send();
+            var socket = new WebSocket("ws://" + window.location.host + "/stream");
 
-    setInterval(function() {
-        output.textContent = xhr.responseText;
-        window.scrollTo(0, document.body.scrollHeight);
-    }, 1000);
-</script>
-</body></html>
+            socket.onmessage = function(data) {
+                output.textContent += data.data;
+                window.scrollTo(0, document.body.scrollHeight);
+            }
+        </script>
+    </body>
+</html>

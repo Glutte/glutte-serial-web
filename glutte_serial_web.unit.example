@@ -6,5 +6,5 @@ After=syslog.target network.target
 Type=simple
 User=glutte
 WorkingDirectory=/home/glutte/glutte-serial-web
-ExecStart=/home/glutte/glutte-serial-web/bin/python /home/glutte/glutte-serial-web/glutte_serial_web.py
+ExecStart=/home/glutte/glutte-serial-web/bin/gunicorn -k flask_sockets.worker glutte_serial_web:app -b 0.0.0.0:5000
 

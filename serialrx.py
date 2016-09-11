@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Matthias P. Braendli
+# Copyright (c) 2016 Matthias P. Braendli, Maximilien Cuony
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,16 +22,17 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-from time import sleep
 import serial
 import threading
 import collections
 
-SERIALPORT="/dev/ttyACM0"
-BAUDRATE=9600
-LINES_TO_KEEP=200
+SERIALPORT = "/dev/ttyACM0"
+BAUDRATE = 9600
+LINES_TO_KEEP = 200
+
 
 class SerialRX(threading.Thread):
+
     def __init__(self):
         threading.Thread.__init__(self)
 
@@ -41,7 +42,7 @@ class SerialRX(threading.Thread):
         self.event_stop = threading.Event()
 
         self.data_lock = threading.Lock()
-        self.data_queue = collections.deque()
+        self.clients = []
 
         self.line_accumulator = []
 
@@ -56,24 +57,39 @@ class SerialRX(threading.Thread):
             if databyte == "\n":
                 self.data_lock.acquire()
                 try:
-                    self.data_queue.append("".join(self.line_accumulator))
 
-                    if len(self.data_queue) > LINES_TO_KEEP:
-                        self.data_queue.popleft()
+                    for queue in self.clients:
+                        queue.append("".join(self.line_accumulator))
+
+                        if len(queue) > LINES_TO_KEEP:
+                            queue.popleft()
                 except:
                     raise
                 finally:
                     self.data_lock.release()
                 self.line_accumulator = []
 
-
     def stop(self):
         self.event_stop.set()
         self.join()
 
-    def get_line(self):
+    def register_client(self):
+        self.data_lock.acquire()
         try:
-            return self.data_queue.popleft()
-        except IndexError:
-            return None
+            new_queue = collections.deque()
+            self.clients.append(new_queue)
+        except:
+            raise
+        finally:
+            self.data_lock.release()
 
+        return new_queue
+
+    def unregister_client(self, queue):
+        self.data_lock.acquire()
+        try:
+            self.clients.remove(queue)
+        except:
+            raise
+        finally:
+            self.data_lock.release()
