@@ -11,12 +11,74 @@
         <script>
             var output = document.getElementById('output');
 
-            var socket = new WebSocket("ws://" + window.location.host + "/stream");
+            var socket = null;
+            var closed = true;
+            var retry_scheduled = false;
 
-            socket.onmessage = function(data) {
-                output.textContent += data.data;
-                window.scrollTo(0, document.body.scrollHeight);
+            function init_socket() {
+
+                retry_scheduled = false;
+
+                if (socket != null) {
+
+                    socket.onmessage = null;
+                    socket.onopen = null;
+                    socket.onclose = null;
+                    socket.onerror = null;
+
+                    delete socket;
+                }
+
+                socket = new WebSocket("ws://" + window.location.host + "/stream");
+
+                socket.onmessage = function(data) {
+                    output.textContent += data.data;
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
+
+                socket.onopen = function(data) {
+                    output.textContent += "{System} Websocket open !\n";
+                    window.scrollTo(0, document.body.scrollHeight);
+                    closed = false;
+                }
+
+                socket.onclose = function(code, text) {
+                    closed = true;
+                    if (!retry_scheduled) {
+                        output.textContent += "{System} Websocket closed :( " + text + "\n";
+                        window.scrollTo(0, document.body.scrollHeight);
+                        retry_scheduled = true;
+                        init_socket();
+                    }
+                }
+
+                socket.onerror = function() {
+                    closed = true;
+
+                    if (!retry_scheduled) {
+                        output.textContent += "{System} Websocket error. Trying again in 3s :(\n";
+                        window.scrollTo(0, document.body.scrollHeight);
+                        setTimeout(init_socket, 3000);
+                        retry_scheduled = true;
+                    }
+                }
+
             }
+
+            function keep_alive() {
+
+                if (!closed) {
+                    try {
+                        socket.send('.');
+                    } catch (e) {
+                    }
+                }
+
+                setTimeout(keep_alive, 10000);
+            }
+
+            init_socket();
+            keep_alive();
         </script>
     </body>
 </html>
