@@ -7,7 +7,7 @@
     </head>
     <body>
         <h1>Ceci n'est pas une Glutte</h1>
-        <pre id="output"></pre>
+        <pre id="output">{% for l in last_lines %}{{l}}{% endfor %}</pre>
         <script>
             var output = document.getElementById('output');
 

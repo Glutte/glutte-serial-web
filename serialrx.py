@@ -29,6 +29,7 @@ import collections
 SERIALPORT = "/dev/ttyACM0"
 BAUDRATE = 9600
 LINES_TO_KEEP = 200
+LAST_LINE_TO_KEEP = 1000
 
 
 class SerialRX(threading.Thread):
@@ -45,6 +46,7 @@ class SerialRX(threading.Thread):
         self.clients = []
 
         self.line_accumulator = []
+        self.last_lines = []
 
         print("Serial port ready")
 
@@ -63,6 +65,12 @@ class SerialRX(threading.Thread):
 
                         if len(queue) > LINES_TO_KEEP:
                             queue.popleft()
+
+                    self.last_lines.append("".join(self.line_accumulator))
+
+                    if len(self.last_lines) > LAST_LINE_TO_KEEP:
+                        self.last_lines.pop(0)
+
                 except:
                     raise
                 finally:
@@ -72,6 +80,9 @@ class SerialRX(threading.Thread):
     def stop(self):
         self.event_stop.set()
         self.join()
+
+    def get_last_lines(self):
+        return self.last_lines
 
     def register_client(self):
         self.data_lock.acquire()

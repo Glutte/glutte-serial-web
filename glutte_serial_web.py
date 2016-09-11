@@ -37,7 +37,7 @@ ser = serialrx.SerialRX()
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('index.html', last_lines=ser.get_last_lines())
 
 
 @sockets.route('/stream')
@@ -50,7 +50,7 @@ def stream(socket):
         while not socket.closed:
             # Force to check if the client is still here
             try:
-                with Timeout(0.1, False):
+                with Timeout(0.05, False):
                     socket.receive()
             except:
                 pass
@@ -59,7 +59,7 @@ def stream(socket):
                 socket.send(line)
             except IndexError:
                 pass
-            sleep(0.1)
+            sleep(0.05)
     except:
         raise
     finally:
