@@ -123,7 +123,7 @@ class Monitor(threading.Thread):
         if self.last_balise and (datetime.datetime.now() - self.last_balise).total_seconds() > 10800:
             result.append("No FSM_BALISE_LONGUE nor FSM_BALISE_SPECIALE for more than 3 hours !")
 
-        if self.current_state and self.current_state in MAXIMUM_STATES and (datetime.datetime.now() - self.status_starttime[self.current_state]).total_seconds() > MAXIMUM_STATES[self.current_state][0] / 10:
+        if self.current_state and self.current_state in MAXIMUM_STATES and (datetime.datetime.now() - self.status_starttime[self.current_state]).total_seconds() > MAXIMUM_STATES[self.current_state][0]:
             result.append("The FSM has been in the state {} for more than {} !".format(self.current_state, MAXIMUM_STATES[self.current_state][1]))
 
         return result
@@ -160,6 +160,7 @@ class ADSL(threading.Thread):
                 offset = updates[0].update_id + 1
 
                 try:
+                    print(updates[0].message.chat.id)
                     if int(updates[0].message.chat.id) == int(config.TELEGRAM_GROUP):
 
                         if updates[0].message.text.startswith('/status'):

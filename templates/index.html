@@ -51,11 +51,11 @@
                     }
                 }
 
-                socket.onerror = function() {
+                socket.onerror = function(e) {
                     closed = true;
 
                     if (!retry_scheduled) {
-                        add_message("{System} Websocket error. Trying again in 3s :(\n");
+                        add_message("{System} Websocket error. Trying again in 3s :( " + e + "\n");
                         setTimeout(init_socket, 3000);
                         retry_scheduled = true;
                     }
