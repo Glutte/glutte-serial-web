@@ -96,7 +96,7 @@ class SerialRX(threading.Thread):
     def unregister_client(self, queue):
         self.data_lock.acquire()
         try:
-            self.clients.remove(queue)
+            self.clients = filter(lambda x: id(x) != id(queue), self.clients)
         except:
             raise
         finally:
