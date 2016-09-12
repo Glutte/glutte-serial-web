@@ -28,11 +28,13 @@ from time import sleep
 from flask import Flask, render_template
 from flask_sockets import Sockets
 import serialrx
+import adsl
 
 app = Flask(__name__)
 sockets = Sockets(app)
 
 ser = serialrx.SerialRX()
+adsl = adsl.ADSL(ser)
 
 
 @app.route('/')
@@ -66,6 +68,7 @@ def stream(socket):
         ser.unregister_client(queue)
 
 ser.start()
+adsl.start()
 
 if __name__ == "__main__":
     print("You're running in dev mode, only one client at a time will works ! Please use gunicorn to fix this :)")
