@@ -26,10 +26,7 @@ import serial
 import threading
 import collections
 
-SERIALPORT = "/dev/ttyACM0"
-BAUDRATE = 9600
-LINES_TO_KEEP = 200
-LAST_LINE_TO_KEEP = 1000
+import config
 
 
 class SerialRX(threading.Thread):
@@ -37,8 +34,8 @@ class SerialRX(threading.Thread):
     def __init__(self):
         threading.Thread.__init__(self)
 
-        print("Open Serial on {} at {}".format(SERIALPORT, BAUDRATE))
-        self.ser = serial.Serial(SERIALPORT, baudrate=BAUDRATE)
+        print("Open Serial on {} at {}".format(config.SERIALPORT, config.BAUDRATE))
+        self.ser = serial.Serial(config.SERIALPORT, baudrate=config.BAUDRATE)
 
         self.event_stop = threading.Event()
 
@@ -63,12 +60,12 @@ class SerialRX(threading.Thread):
                     for queue in self.clients:
                         queue.append("".join(self.line_accumulator))
 
-                        if len(queue) > LINES_TO_KEEP:
+                        if len(queue) > config.LINES_TO_KEEP:
                             queue.popleft()
 
                     self.last_lines.append("".join(self.line_accumulator))
 
-                    if len(self.last_lines) > LAST_LINE_TO_KEEP:
+                    if len(self.last_lines) > config.LAST_LINE_TO_KEEP:
                         self.last_lines.pop(0)
 
                 except:
