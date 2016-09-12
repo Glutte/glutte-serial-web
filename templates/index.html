@@ -6,14 +6,16 @@
         <link rel="stylesheet" href="static/style.css" type="text/css" media="screen" charset="utf-8"/>
     </head>
     <body>
-        <h1>Ceci n'est pas une Glutte</h1>
+        <h1>Ceci n'est pas une Glutte <input type="checkbox" id="pause"><small><small>Pause</small></small></h1>
         <pre id="output">{% for l in last_lines %}{{l}}{% endfor %}</pre>
         <script>
             var output = document.getElementById('output');
+            var pause = document.getElementById('pause');
 
             var socket = null;
             var closed = true;
             var retry_scheduled = false;
+            var pause_buffer = '';
 
             function init_socket() {
 
@@ -32,21 +34,18 @@
                 socket = new WebSocket("ws://" + window.location.host + "/stream");
 
                 socket.onmessage = function(data) {
-                    output.textContent += data.data;
-                    window.scrollTo(0, document.body.scrollHeight);
+                    add_message(data.data);
                 }
 
                 socket.onopen = function(data) {
-                    output.textContent += "{System} Websocket open !\n";
-                    window.scrollTo(0, document.body.scrollHeight);
+                    add_message("{System} Websocket open !\n");
                     closed = false;
                 }
 
                 socket.onclose = function(code, text) {
                     closed = true;
                     if (!retry_scheduled) {
-                        output.textContent += "{System} Websocket closed :( " + text + "\n";
-                        window.scrollTo(0, document.body.scrollHeight);
+                        add_message("{System} Websocket closed :( " + text + "\n");
                         retry_scheduled = true;
                         init_socket();
                     }
@@ -56,8 +55,7 @@
                     closed = true;
 
                     if (!retry_scheduled) {
-                        output.textContent += "{System} Websocket error. Trying again in 3s :(\n";
-                        window.scrollTo(0, document.body.scrollHeight);
+                        add_message("{System} Websocket error. Trying again in 3s :(\n");
                         setTimeout(init_socket, 3000);
                         retry_scheduled = true;
                     }
@@ -76,6 +74,26 @@
 
                 setTimeout(keep_alive, 10000);
             }
+
+            function add_message(text) {
+                if (pause.checked) {
+                    pause_buffer += text;
+                } else {
+                    output.textContent += text;
+                    window.scrollTo(0, document.body.scrollHeight);
+                }
+            }
+
+            function pause_changed() {
+                if (!pause.checked) {
+                    if (pause_buffer) {
+                        add_message(pause_buffer);
+                        pause_buffer = "";
+                    }
+                }
+            }
+
+            pause.onchange = pause_changed;
 
             init_socket();
             keep_alive();
