@@ -48,8 +48,9 @@ def stream(socket):
     try:
 
         queue = ser.register_client()
+        error = False
 
-        while not socket.closed:
+        while not socket.closed and not error:
             # Force to check if the client is still here
             try:
                 with Timeout(0.1, False):
@@ -61,6 +62,8 @@ def stream(socket):
                 socket.send(line)
             except IndexError:
                 pass
+            except:
+                error = True
             sleep(0.1)
     except:
         raise
