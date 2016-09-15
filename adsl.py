@@ -200,7 +200,7 @@ class ADSL(threading.Thread):
 
             for old_alarm in alarms:
                 if old_alarm not in new_alarms:
-                    bot.send_message(config.TELEGRAM_GROUP, '\xe2\x9c\x85 Problem fixed \xe2\x9c\x85\nThe following problem is not anymore a problem with the glutt-o-matique:\n\n{}'.format(alarm)).wait()
+                    bot.send_message(config.TELEGRAM_GROUP, '\xe2\x9c\x85 Problem fixed \xe2\x9c\x85\nThe following problem is not anymore a problem with the glutt-o-matique:\n\n{}'.format(old_alarm)).wait()
 
             alarms = new_alarms
 
