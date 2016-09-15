@@ -50,6 +50,7 @@ class Monitor(threading.Thread):
         self.last_message = None
         self.last_balise = None
         self.reseted = False
+        self.hoho_message = None
 
     def run(self):
 
@@ -71,6 +72,9 @@ class Monitor(threading.Thread):
                 if line.endswith("common init"):
                     self.reset_states()
                     self.reseted = True
+
+                if "[HOHO]" in line:
+                    self.hoho_message = line
 
                 if "T_GPS" in line:
                     self.last_gps_balise = datetime.datetime.now()
@@ -111,8 +115,12 @@ class Monitor(threading.Thread):
         result = []
 
         if self.reseted:
-            result.append("A reset occured !")
+            result.append("(AutoAckedError) A reset occured !")
             self.reseted = False
+
+        if self.hoho_message:
+            result.append("(AutoAckedError) An error message was found in the UART: {}".format(self.hoho_message))
+            self.hoho_message = None
 
         if self.last_message and (datetime.datetime.now() - self.last_message).total_seconds() > 300:
             result.append("No message on UART for more than 5 minutes !")
