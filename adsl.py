@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Matthias P. Braendli, Maximilien Cuony
+# Copyright (c) 2019 Matthias P. Braendli, Maximilien Cuony
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -88,7 +88,10 @@ class Monitor(threading.Thread):
                     self.status_starttime[new_state] = datetime.datetime.now()
                     self.current_state = new_state
 
-                if "FSM: FSM_BALISE_LONGUE" in line or "FSM: FSM_BALISE_SPECIALE" in line:
+                if "FSM: FSM_BALISE_LONGUE" in line or \
+                        "FSM: FSM_BALISE_SPECIALE" in line or \
+                        "FSM: FSM_BALISE_STATS1" in line or \
+                        "FSM: FSM_BALISE_SPECIALE_STATS1" in line:
                     self.last_balise = datetime.datetime.now()
 
     def alarms(self):
@@ -107,7 +110,13 @@ class Monitor(threading.Thread):
             'FSM_TEXTE_HB9G': (120, '2 minutes'),
             'FSM_TEXTE_LONG': (120, '2 minutes'),
             'FSM_BALISE_LONGUE': (120, '2 minutes'),
+            'FSM_BALISE_STATS1' : (120, '2 minutes'),
+            'FSM_BALISE_STATS2' : (120, '2 minutes'),
+            'FSM_BALISE_STATS3' : (120, '2 minutes'),
             'FSM_BALISE_SPECIALE': (120, '2 minutes'),
+            'FSM_BALISE_SPECIALE_STATS1' : (120, '2 minutes'),
+            'FSM_BALISE_SPECIALE_STATS2' : (120, '2 minutes'),
+            'FSM_BALISE_SPECIALE_STATS3' : (120, '2 minutes'),
             'FSM_BALISE_COURTE': (120, '2 minutes'),
             'FSM_BALISE_COURTE_OPEN': (120, '2 minutes'),
         }
@@ -129,7 +138,7 @@ class Monitor(threading.Thread):
             result.append("No GPS for more than 5 minutes !")
 
         if self.last_balise and (datetime.datetime.now() - self.last_balise).total_seconds() > 10800:
-            result.append("No FSM_BALISE_LONGUE nor FSM_BALISE_SPECIALE for more than 3 hours !")
+            result.append("No long balise for more than 3 hours !")
 
         if self.current_state and self.current_state in MAXIMUM_STATES and (datetime.datetime.now() - self.status_starttime[self.current_state]).total_seconds() > MAXIMUM_STATES[self.current_state][0]:
             result.append("The FSM has been in the state {} for more than {} !".format(self.current_state, MAXIMUM_STATES[self.current_state][1]))
