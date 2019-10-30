@@ -6,7 +6,7 @@ itsdangerous==0.24
 Jinja2==2.8
 MarkupSafe==0.23
 pyserial==3.1.1
-Werkzeug==0.11.11
+Werkzeug==0.15.3
 Flask-Sockets==0.2.1
 gunicorn==19.6.0
 twx.botapi==2.1.0
