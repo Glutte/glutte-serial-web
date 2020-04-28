@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Matthias P. Braendli, Maximilien Cuony
+# Copyright (c) 2020 Matthias P. Braendli, Maximilien Cuony
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -22,10 +22,11 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+import time
 from geventwebsocket.handler import WebSocketHandler
 from gevent import pywsgi, Timeout
 from time import sleep
-from flask import Flask, render_template
+from flask import Flask, render_template, jsonify
 from flask_sockets import Sockets
 import serialrx
 import adsl
@@ -36,17 +37,29 @@ sockets = Sockets(app)
 ser = serialrx.SerialRX()
 adsl = adsl.ADSL(ser)
 
-
 @app.route('/')
 def index():
     return render_template('index.html', last_lines=ser.get_last_lines())
 
+@sockets.route('/stats')
+def stats():
+    t_now = time.time()
+    values = ser.get_parsed_values()
+
+    out_json = {}
+
+    for k in values:
+        value, ts = values[k]
+        if ts + 60 < t_now:
+            out_json[k] = None
+        else:
+            out_json[k] = value
+
+    return jsonify(out_json)
 
 @sockets.route('/stream')
 def stream(socket):
-
     try:
-
         queue = ser.register_client()
         error = False
 

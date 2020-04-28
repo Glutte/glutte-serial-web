@@ -25,14 +25,64 @@
 import serial
 import threading
 import collections
+import re
+import time
 
 import config
 
+flags = re.ASCII
+re_cc_capa = re.compile(r"\[\d+\] CC: CAPA,\d+,(\d+)", flags)
+re_cc_vbat_plus = re.compile(r"\[\d+\] CC: VBAT\+,\d+,(\d+)", flags)
+re_num_sv = re.compile(r"\[\d+\] T_GPS.+ (\d+) SV tracked", flags)
+re_alim = re.compile(r"\[\d+\] ALIM (\d+) mV", flags)
+
+class MessageParser:
+    def __init__(self):
+        self._lock = threading.Lock()
+
+        self._last_cc_capa = 0
+        self._last_cc_capa_time = 0
+        self._last_vbat_plus = 0
+        self._last_vbat_plus_time = 0
+        self._last_num_sv = 0
+        self._last_num_sv_time = 0
+        self._last_alim = 0
+        self._last_alim_time = 0
+
+    def parse_message(self, message):
+        with self._lock:
+            match = re_cc_capa.search(message)
+            if match:
+                self._last_cc_capa = int(match.group(1))
+                self._last_cc_capa_time = time.time()
+
+            match = re_cc_vbat_plus.search(message)
+            if match:
+                self._last_vbat_plus = int(match.group(1))
+                self._last_vbat_plus_time = time.time()
+
+            match = re_num_sv.search(message)
+            if match:
+                self._last_num_sv = int(match.group(1))
+                self._last_num_sv_time = time.time()
+
+            match = re_alim.search(message)
+            if match:
+                self._last_alim = int(match.group(1))
+                self._last_alim_time = time.time()
+
+    def get_last_data(self):
+        with self._lock:
+            return {"capa": (self._last_cc_capa, self._last_cc_capa_time),
+                    "vbat_plus": (self._last_vbat_plus, self._last_vbat_plus_time),
+                    "alim": (self._last_alim, self._last_alim_time),
+                    "num_sv": (self._last_num_sv, self._last_num_sv_time) }
 
 class SerialRX(threading.Thread):
-
     def __init__(self):
         threading.Thread.__init__(self)
+
+        self._parser = MessageParser()
 
         print("Open Serial on {} at {}".format(config.SERIALPORT, config.BAUDRATE))
         self.ser = serial.Serial(config.SERIALPORT, baudrate=config.BAUDRATE)
@@ -47,6 +97,9 @@ class SerialRX(threading.Thread):
 
         print("Serial port ready")
 
+    def get_parsed_values(self):
+        return self._parser.get_last_data()
+
     def run(self):
         print("Serial port starting reception")
         while not self.event_stop.is_set():
@@ -54,20 +107,20 @@ class SerialRX(threading.Thread):
             self.line_accumulator.append(databyte)
 
             if databyte == "\n":
+                line = "".join(self.line_accumulator)
+                self._parser.parse_message(line)
                 self.data_lock.acquire()
                 try:
-
                     for queue in self.clients:
-                        queue.append("".join(self.line_accumulator))
+                        queue.append(line)
 
                         if len(queue) > config.LINES_TO_KEEP:
                             queue.popleft()
 
-                    self.last_lines.append("".join(self.line_accumulator))
+                    self.last_lines.append(line)
 
                     if len(self.last_lines) > config.LAST_LINE_TO_KEEP:
                         self.last_lines.pop(0)
-
                 except:
                     raise
                 finally:
@@ -101,3 +154,39 @@ class SerialRX(threading.Thread):
             raise
         finally:
             self.data_lock.release()
+
+if __name__ == "__main__":
+    test_set = """[193583144] CW: K
+    [193583168] In cw_done change 0 0
+    [193584056] FSM: FSM_ECOUTE
+    [193585992] In SQ 1
+    [193586008] FSM: FSM_QSO
+    [193592816] CC: CAPA,148111,1632707
+    [193605944] CC: CAPA,148121,1632682
+    [193605944] CC: VBAT+,148121,12340
+    [193605944] CC: VBAT-,148121,0
+    [193612144] ALIM 11811 mV
+    [193672600] T_GPS 2020-04-28 19:07:30 12 SV tracked
+    [193672656] TIME  2020-04-28 21:07:30 [GPS]
+    [193692528] TEMP invalid
+    """
+    test_should = { "capa": 1632682, "vbat_plus": 12340, "alim": 11811, "num_sv": 12 }
+
+    mp = MessageParser()
+
+    print("Testing parser")
+    for message in test_set.split("\n"):
+        print(f"Parse {message}")
+        mp.parse_message(message)
+
+    test_measured = mp.get_last_data()
+
+    for k in test_measured:
+        if test_measured[k][1] == 0:
+            print(f"Value {k} has time 0")
+
+    values = {k: test_measured[k][0] for k in test_measured}
+    if values != test_should:
+        print("invalid values {}".format(values))
+
+    print("Test end")
