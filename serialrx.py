@@ -176,14 +176,14 @@ if __name__ == "__main__":
 
     print("Testing parser")
     for message in test_set.split("\n"):
-        print(f"Parse {message}")
+        print("Parse {}".format(message))
         mp.parse_message(message)
 
     test_measured = mp.get_last_data()
 
     for k in test_measured:
         if test_measured[k][1] == 0:
-            print(f"Value {k} has time 0")
+            print("Value {} has time 0".format(k))
 
     values = {k: test_measured[k][0] for k in test_measured}
     if values != test_should:
