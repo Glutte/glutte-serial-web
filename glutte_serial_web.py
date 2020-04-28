@@ -41,7 +41,7 @@ adsl = adsl.ADSL(ser)
 def index():
     return render_template('index.html', last_lines=ser.get_last_lines())
 
-@sockets.route('/stats')
+@app.route('/stats')
 def stats():
     t_now = time.time()
     values = ser.get_parsed_values()

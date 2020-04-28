@@ -30,11 +30,10 @@ import time
 
 import config
 
-flags = re.ASCII
-re_cc_capa = re.compile(r"\[\d+\] CC: CAPA,\d+,(\d+)", flags)
-re_cc_vbat_plus = re.compile(r"\[\d+\] CC: VBAT\+,\d+,(\d+)", flags)
-re_num_sv = re.compile(r"\[\d+\] T_GPS.+ (\d+) SV tracked", flags)
-re_alim = re.compile(r"\[\d+\] ALIM (\d+) mV", flags)
+re_cc_capa = re.compile(r"\[\d+\] CC: CAPA,\d+,(\d+)")
+re_cc_vbat_plus = re.compile(r"\[\d+\] CC: VBAT\+,\d+,(\d+)")
+re_num_sv = re.compile(r"\[\d+\] T_GPS.+ (\d+) SV tracked")
+re_alim = re.compile(r"\[\d+\] ALIM (\d+) mV")
 
 class MessageParser:
     def __init__(self):
