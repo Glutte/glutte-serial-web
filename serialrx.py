@@ -34,6 +34,7 @@ re_cc_capa = re.compile(r"\[\d+\] CC: CAPA,\d+,(\d+)")
 re_cc_vbat_plus = re.compile(r"\[\d+\] CC: VBAT\+,\d+,(\d+)")
 re_num_sv = re.compile(r"\[\d+\] T_GPS.+ (\d+) SV tracked")
 re_alim = re.compile(r"\[\d+\] ALIM (\d+) mV")
+re_temp = re.compile(r"\[\d+\] TEMP ([+-]?[0-9.]+)")
 
 class MessageParser:
     def __init__(self):
@@ -47,6 +48,8 @@ class MessageParser:
         self._last_num_sv_time = 0
         self._last_alim = 0
         self._last_alim_time = 0
+        self._last_temp = 0
+        self._last_temp_time = 0
 
     def parse_message(self, message):
         with self._lock:
@@ -70,12 +73,18 @@ class MessageParser:
                 self._last_alim = int(match.group(1))
                 self._last_alim_time = time.time()
 
+            match = re_temp.search(message)
+            if match:
+                self._last_temp = float(match.group(1))
+                self._last_temp_time = time.time()
+
     def get_last_data(self):
         with self._lock:
             return {"capa": (self._last_cc_capa, self._last_cc_capa_time),
                     "vbat_plus": (self._last_vbat_plus, self._last_vbat_plus_time),
                     "alim": (self._last_alim, self._last_alim_time),
-                    "num_sv": (self._last_num_sv, self._last_num_sv_time) }
+                    "num_sv": (self._last_num_sv, self._last_num_sv_time),
+                    "temp": (self._last_temp, self._last_temp_time) }
 
 class SerialRX(threading.Thread):
     def __init__(self):
@@ -167,9 +176,10 @@ if __name__ == "__main__":
     [193612144] ALIM 11811 mV
     [193672600] T_GPS 2020-04-28 19:07:30 12 SV tracked
     [193672656] TIME  2020-04-28 21:07:30 [GPS]
+    [233465736] TEMP 0.75
     [193692528] TEMP invalid
     """
-    test_should = { "capa": 1632682, "vbat_plus": 12340, "alim": 11811, "num_sv": 12 }
+    test_should = { "capa": 1632682, "vbat_plus": 12340, "alim": 11811, "num_sv": 12, "temp" : 0.75}
 
     mp = MessageParser()
 
