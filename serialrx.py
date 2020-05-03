@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2016 Matthias P. Braendli, Maximilien Cuony
+# Copyright (c) 2020 Matthias P. Braendli, Maximilien Cuony
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -35,6 +35,7 @@ re_cc_vbat_plus = re.compile(r"\[\d+\] CC: VBAT\+,\d+,(\d+)")
 re_num_sv = re.compile(r"\[\d+\] T_GPS.+ (\d+) SV tracked")
 re_alim = re.compile(r"\[\d+\] ALIM (\d+) mV")
 re_temp = re.compile(r"\[\d+\] TEMP ([+-]?[0-9.]+)")
+re_relay = re.compile(r"\[\d+\] CC: RELAY,\d+,(On|Off),(On|Off),(On|Off)")
 
 class MessageParser:
     def __init__(self):
@@ -50,6 +51,8 @@ class MessageParser:
         self._last_alim_time = 0
         self._last_temp = 0
         self._last_temp_time = 0
+        self._last_relay = (False, False, False)
+        self._last_relay_time = 0
 
     def parse_message(self, message):
         with self._lock:
@@ -78,13 +81,19 @@ class MessageParser:
                 self._last_temp = float(match.group(1))
                 self._last_temp_time = time.time()
 
+            match = re_relay.search(message)
+            if match:
+                self._last_relay = (match.group(1) == "On", match.group(2) == "On", match.group(3) == "On")
+                self._last_relay_time = time.time()
+
     def get_last_data(self):
         with self._lock:
             return {"capa": (self._last_cc_capa, self._last_cc_capa_time),
                     "vbat_plus": (self._last_vbat_plus, self._last_vbat_plus_time),
                     "alim": (self._last_alim, self._last_alim_time),
                     "num_sv": (self._last_num_sv, self._last_num_sv_time),
-                    "temp": (self._last_temp, self._last_temp_time) }
+                    "temp": (self._last_temp, self._last_temp_time),
+                    "relay": (self._last_relay, self._last_relay_time)}
 
 class SerialRX(threading.Thread):
     def __init__(self):
@@ -178,8 +187,10 @@ if __name__ == "__main__":
     [193672656] TIME  2020-04-28 21:07:30 [GPS]
     [233465736] TEMP 0.75
     [193692528] TEMP invalid
+    [102976] CC: RELAY,721,On,Off,Off
     """
-    test_should = { "capa": 1632682, "vbat_plus": 12340, "alim": 11811, "num_sv": 12, "temp" : 0.75}
+    test_should = { "capa": 1632682, "vbat_plus": 12340, "alim": 11811, "num_sv": 12, "temp" : 0.75,
+            "relay" : (True, False, False)}
 
     mp = MessageParser()
 
