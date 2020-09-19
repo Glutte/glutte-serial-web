@@ -123,8 +123,8 @@ class SerialRX(threading.Thread):
             databyte = self.ser.read()
             self.line_accumulator.append(databyte)
 
-            if databyte == "\n":
-                line = "".join(self.line_accumulator)
+            if databyte == b"\n":
+                line = b"".join(self.line_accumulator).decode()
                 self._parser.parse_message(line)
                 self.data_lock.acquire()
                 try:
@@ -166,7 +166,7 @@ class SerialRX(threading.Thread):
     def unregister_client(self, queue):
         self.data_lock.acquire()
         try:
-            self.clients = filter(lambda x: id(x) != id(queue), self.clients)
+            self.clients = [x for x in self.clients if id(x) != id(queue)]
         except:
             raise
         finally:
