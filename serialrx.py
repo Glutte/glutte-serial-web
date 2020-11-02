@@ -30,7 +30,7 @@ import time
 
 import config
 
-re_cc_capa = re.compile(r"\[\d+\] CC: CAPA,\d+,(\d+)")
+re_cc_capa = re.compile(r"\[\d+\] CC: CAPA,(\d+),(\d+)")
 re_cc_vbat_plus = re.compile(r"\[\d+\] CC: VBAT\+,\d+,(\d+)")
 re_num_sv = re.compile(r"\[\d+\] T_GPS.+ (\d+) SV tracked")
 re_alim = re.compile(r"\[\d+\] ALIM (\d+) mV")
@@ -41,6 +41,8 @@ class MessageParser:
     def __init__(self):
         self._lock = threading.Lock()
 
+        self._last_cc_timestamp_time = 0
+        self._last_cc_timestamp = 0
         self._last_cc_capa = 0
         self._last_cc_capa_time = 0
         self._last_vbat_plus = 0
@@ -58,8 +60,10 @@ class MessageParser:
         with self._lock:
             match = re_cc_capa.search(message)
             if match:
-                self._last_cc_capa = int(match.group(1))
-                self._last_cc_capa_time = time.time()
+                self._last_cc_timestamp = int(match.group(1))
+                self._last_cc_capa = int(match.group(2))
+                self._last_cc_timestamp_time = \
+                    self._last_cc_capa_time = time.time()
 
             match = re_cc_vbat_plus.search(message)
             if match:
@@ -93,7 +97,8 @@ class MessageParser:
                     "alim": (self._last_alim, self._last_alim_time),
                     "num_sv": (self._last_num_sv, self._last_num_sv_time),
                     "temp": (self._last_temp, self._last_temp_time),
-                    "relay": (self._last_relay, self._last_relay_time)}
+                    "relay": (self._last_relay, self._last_relay_time),
+                    "uptime": (self._last_cc_timestamp, self._last_cc_timestamp_time)}
 
 class SerialRX(threading.Thread):
     def __init__(self):
