@@ -33,7 +33,7 @@ import config
 re_cc_capa = re.compile(r"\[\d+\] CC: CAPA,(\d+),(\d+)")
 re_cc_vbat_plus = re.compile(r"\[\d+\] CC: VBAT\+,\d+,(\d+)")
 re_num_sv = re.compile(r"\[\d+\] T_GPS.+ (\d+) SV tracked")
-re_alim = re.compile(r"\[\d+\] ALIM (\d+) mV")
+re_alim = re.compile(r"\[(\d+)\] ALIM (\d+) mV")
 re_temp = re.compile(r"\[\d+\] TEMP ([+-]?[0-9.]+)")
 re_relay = re.compile(r"\[\d+\] CC: RELAY,\d+,(On|Off),(On|Off),(On|Off)")
 
@@ -41,8 +41,10 @@ class MessageParser:
     def __init__(self):
         self._lock = threading.Lock()
 
-        self._last_cc_timestamp_time = 0
+        self._last_timestamp = 0
+        self._last_timestamp_time = 0
         self._last_cc_timestamp = 0
+        self._last_cc_timestamp_time = 0
         self._last_cc_capa = 0
         self._last_cc_capa_time = 0
         self._last_vbat_plus = 0
@@ -77,8 +79,11 @@ class MessageParser:
 
             match = re_alim.search(message)
             if match:
-                self._last_alim = int(match.group(1))
-                self._last_alim_time = time.time()
+                # Convert milliseconds to seconds so that we have consistent units between the two uptimes
+                self._last_timestamp = int(int(match.group(1)) / 1000)
+                self._last_alim = int(match.group(2))
+                self._last_timestamp_time = \
+                    self._last_alim_time = time.time()
 
             match = re_temp.search(message)
             if match:
@@ -98,7 +103,8 @@ class MessageParser:
                     "num_sv": (self._last_num_sv, self._last_num_sv_time),
                     "temp": (self._last_temp, self._last_temp_time),
                     "relay": (self._last_relay, self._last_relay_time),
-                    "uptime": (self._last_cc_timestamp, self._last_cc_timestamp_time)}
+                    "cc_uptime": (self._last_cc_timestamp, self._last_cc_timestamp_time),
+                    "uptime": (self._last_timestamp, self._last_timestamp_time)}
 
 class SerialRX(threading.Thread):
     def __init__(self):
