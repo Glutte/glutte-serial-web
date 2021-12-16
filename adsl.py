@@ -151,6 +151,7 @@ class ADSL(threading.Thread):
     def __init__(self, ser):
         threading.Thread.__init__(self)
         self.monitor = Monitor(ser)
+        self._ser = ser
 
     def run(self):
 
@@ -168,7 +169,7 @@ class ADSL(threading.Thread):
 
         offset = None
 
-        bot.send_message(config.TELEGRAM_GROUP, '\xe2\x84\xb9 Hello ! I have been started, so everything has been reset on my side.').wait()
+        bot.send_message(config.TELEGRAM_GROUP, b'\xe2\x84\xb9 Hello ! I have been started, so everything has been reset on my side.'.decode()).wait()
 
         while True:
 
@@ -177,9 +178,7 @@ class ADSL(threading.Thread):
                 offset = updates[0].update_id + 1
 
                 try:
-                    print(updates[0].message.chat.id)
                     if int(updates[0].message.chat.id) == int(config.TELEGRAM_GROUP):
-
                         if updates[0].message.text.startswith('/status'):
                             response = "Here is the current status:\n\n"
 
@@ -203,9 +202,24 @@ class ADSL(threading.Thread):
 
                             bot.send_message(config.TELEGRAM_GROUP, response).wait()
 
-                        if updates[0].message.text.startswith('/reboot'):
+                        elif updates[0].message.text.startswith('/stats'):
+                            t_now = time.time()
+                            values = ser.get_parsed_values()
+
+                            stats_lines = ["Stats:"]
+
+                            for k in values:
+                                value, ts = values[k]
+                                since = t_now - ts
+                                stats_lines.append(f"{k}: {value} since {since}s")
+                            bot.send_message(config.TELEGRAM_GROUP, "\n".join(stats_lines)).wait()
+
+
+                        elif updates[0].message.text.startswith('/reboot'):
                             os.system(config.TELEGRAM_REBOOT_COMMAND)
-                            bot.send_message(config.TELEGRAM_GROUP, '\xe2\x84\xb9 I issued a reboot command. I hope everything is ok.').wait()
+                            bot.send_message(config.TELEGRAM_GROUP, b'\xe2\x84\xb9 I issued a reboot command. I hope everything is ok.'.decode()).wait()
+                    else:
+                        print(f"Ignore chat ID {updates[0].message.chat.id}")
                 except:
                     pass
 
@@ -213,11 +227,11 @@ class ADSL(threading.Thread):
 
             for alarm in new_alarms:
                 if alarm not in alarms:
-                    bot.send_message(config.TELEGRAM_GROUP, '\xe2\x9a\xa0 Problem \xe2\x9a\xa0\nSorry to bother you, but I think there is a problem with the glutt-o-matique: \n\n{}'.format(alarm)).wait()
+                    bot.send_message(config.TELEGRAM_GROUP, b'\xe2\x9a\xa0 Problem \xe2\x9a\xa0\nSorry to bother you, but I think there is a problem with the glutt-o-matique: \n\n{}'.decode().format(alarm)).wait()
 
             for old_alarm in alarms:
                 if old_alarm not in new_alarms:
-                    bot.send_message(config.TELEGRAM_GROUP, '\xe2\x9c\x85 Problem fixed \xe2\x9c\x85\nThe following problem is not anymore a problem with the glutt-o-matique:\n\n{}'.format(old_alarm)).wait()
+                    bot.send_message(config.TELEGRAM_GROUP, b'\xe2\x9c\x85 Problem fixed \xe2\x9c\x85\nThe following problem is not anymore a problem with the glutt-o-matique:\n\n{}'.decode().format(old_alarm)).wait()
 
             alarms = new_alarms
 

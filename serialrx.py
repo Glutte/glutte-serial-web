@@ -135,25 +135,29 @@ class SerialRX(threading.Thread):
             self.line_accumulator.append(databyte)
 
             if databyte == b"\n":
-                line = b"".join(self.line_accumulator).decode()
-                self._parser.parse_message(line)
-                self.data_lock.acquire()
                 try:
-                    for queue in self.clients:
-                        queue.append(line)
+                    line = b"".join(self.line_accumulator).decode('ascii')
+                    self._parser.parse_message(line)
+                    self.data_lock.acquire()
+                    try:
+                        for queue in self.clients:
+                            queue.append(line)
 
-                        if len(queue) > config.LINES_TO_KEEP:
-                            queue.popleft()
+                            if len(queue) > config.LINES_TO_KEEP:
+                                queue.popleft()
 
-                    self.last_lines.append(line)
+                        self.last_lines.append(line)
 
-                    if len(self.last_lines) > config.LAST_LINE_TO_KEEP:
-                        self.last_lines.pop(0)
-                except:
-                    raise
-                finally:
-                    self.data_lock.release()
-                self.line_accumulator = []
+                        if len(self.last_lines) > config.LAST_LINE_TO_KEEP:
+                            self.last_lines.pop(0)
+                    except:
+                        raise
+                    finally:
+                        self.data_lock.release()
+                    self.line_accumulator = []
+                except UnicodeDecodeError:
+                    print(f"Ignoring line with invalid ASCII bytes {self.line_accumulator}")
+                    self.line_accumulator = []
 
     def stop(self):
         self.event_stop.set()
