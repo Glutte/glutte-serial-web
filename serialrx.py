@@ -140,16 +140,16 @@ class SerialRX(threading.Thread):
                 try:
                     line = b"".join(self.line_accumulator).decode('ascii')
                     self._parser.parse_message(line)
-                    now = datetime.datetime.utcnow()
+                    now = time.time()
 
                     try:
                         if config.CACHE_FILE:
                             try:
                                 with open(config.CACHE_FILE) as fd:
                                     hist = json.load(fd)
-                            except FileNotFoundError:
+                            except:
                                 hist = []
-                            hist = [h for h in hist if h['ts'] + datetime.timedelta(seconds=config.CACHE_MAX_AGE) > now]
+                            hist = [h for h in hist if h['ts'] + config.CACHE_MAX_AGE > now]
                             hist.append({'ts': now, 'line': line.strip()})
                             with open(config.CACHE_FILE, 'w') as fd:
                                 json.dump(hist, fd)

@@ -23,6 +23,7 @@
 # SOFTWARE.
 
 import time
+import datetime
 import json
 from geventwebsocket.handler import WebSocketHandler
 from gevent import pywsgi, Timeout
@@ -48,7 +49,12 @@ def history():
     if config.CACHE_FILE:
         with open(config.CACHE_FILE) as fd:
             hist = json.load(fd)
-    text = "\n".join(f"{entry['ts'].isoformat()} {entry['line']}" for entry in hist)
+
+    def format_entry(entry):
+        dt = datetime.datetime.fromtimestamp(entry['ts']).isoformat()
+        return f"{dt} {entry['line']}"
+
+    text = "\n".join(format_entry(entry) for entry in hist)
     return Response(text, mimetype='text/plain')
 
 @app.route('/stats')
