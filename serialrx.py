@@ -27,6 +27,7 @@ import threading
 import collections
 import re
 import time
+import datetime
 import json
 
 import config
@@ -139,7 +140,7 @@ class SerialRX(threading.Thread):
                 try:
                     line = b"".join(self.line_accumulator).decode('ascii')
                     self._parser.parse_message(line)
-                    now = time.time()
+                    now = datetime.datetime.utcnow()
 
                     try:
                         if config.CACHE_FILE:
@@ -148,8 +149,8 @@ class SerialRX(threading.Thread):
                                     hist = json.load(fd)
                             except FileNotFoundError:
                                 hist = []
-                            hist = [h for h in hist if h['ts'] + config.CACHE_MAX_AGE > now]
-                            hist.append({'ts': now, 'line': line})
+                            hist = [h for h in hist if h['ts'] + datetime.timedelta(seconds=config.CACHE_MAX_AGE) > now]
+                            hist.append({'ts': now, 'line': line.strip()})
                             with open(config.CACHE_FILE, 'w') as fd:
                                 json.dump(hist, fd)
                     except Exception as e:

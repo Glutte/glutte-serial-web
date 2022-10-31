@@ -26,7 +26,6 @@ import time
 import json
 from geventwebsocket.handler import WebSocketHandler
 from gevent import pywsgi, Timeout
-from time import sleep
 from flask import Flask, Response, render_template, jsonify
 from flask_sockets import Sockets
 import serialrx
@@ -49,7 +48,7 @@ def history():
     if config.CACHE_FILE:
         with open(config.CACHE_FILE) as fd:
             hist = json.load(fd)
-    text = "\n".join(f"{entry['ts']} {entry['line']}" for entry in hist)
+    text = "\n".join(f"{entry['ts'].isoformat()} {entry['line']}" for entry in hist)
     return Response(text, mimetype='text/plain')
 
 @app.route('/stats')
@@ -88,7 +87,7 @@ def stream(socket):
                 pass
             except:
                 error = True
-            sleep(0.1)
+            time.sleep(0.1)
     except:
         raise
     finally:
