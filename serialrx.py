@@ -141,13 +141,19 @@ class SerialRX(threading.Thread):
                     self._parser.parse_message(line)
                     now = time.time()
 
-                    if config.CACHE_FILE:
-                        with open(config.CACHE_FILE) as fd:
-                            hist = json.load(fd)
-                        hist = [h for h in hist if h['ts'] + config.CACHE_MAX_AGE > now]
-                        host.append({'ts': now, 'line': line})
-                        with open(config.CACHE_FILE, 'w') as fd:
-                            json.dump(hist, fd)
+                    try:
+                        if config.CACHE_FILE:
+                            try:
+                                with open(config.CACHE_FILE) as fd:
+                                    hist = json.load(fd)
+                            except FileNotFoundError:
+                                hist = []
+                            hist = [h for h in hist if h['ts'] + config.CACHE_MAX_AGE > now]
+                            hist.append({'ts': now, 'line': line})
+                            with open(config.CACHE_FILE, 'w') as fd:
+                                json.dump(hist, fd)
+                    except Exception as e:
+                        print(e)
 
                     self.data_lock.acquire()
                     try:
