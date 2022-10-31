@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 Matthias P. Braendli, Maximilien Cuony
+# Copyright (c) 2022 Matthias P. Braendli, Maximilien Cuony
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,13 +23,15 @@
 # SOFTWARE.
 
 import time
+import json
 from geventwebsocket.handler import WebSocketHandler
 from gevent import pywsgi, Timeout
 from time import sleep
-from flask import Flask, render_template, jsonify
+from flask import Flask, Response, render_template, jsonify
 from flask_sockets import Sockets
 import serialrx
 import adsl
+import config
 
 app = Flask(__name__)
 sockets = Sockets(app)
@@ -40,6 +42,15 @@ adsl = adsl.ADSL(ser)
 @app.route('/')
 def index():
     return render_template('index.html', last_lines=ser.get_last_lines())
+
+@app.route('/history')
+def history():
+    hist = []
+    if config.CACHE_FILE:
+        with open(config.CACHE_FILE) as fd:
+            hist = json.load(fd)
+    text = "\n".join(f"{entry['ts']} {entry['line']}" for entry in hist)
+    return Response(text, mimetype='text/plain')
 
 @app.route('/stats')
 def stats():

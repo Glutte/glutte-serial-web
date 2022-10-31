@@ -2,7 +2,7 @@
 #
 # The MIT License (MIT)
 #
-# Copyright (c) 2020 Matthias P. Braendli, Maximilien Cuony
+# Copyright (c) 2022 Matthias P. Braendli, Maximilien Cuony
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -27,6 +27,7 @@ import threading
 import collections
 import re
 import time
+import json
 
 import config
 
@@ -138,6 +139,16 @@ class SerialRX(threading.Thread):
                 try:
                     line = b"".join(self.line_accumulator).decode('ascii')
                     self._parser.parse_message(line)
+                    now = time.time()
+
+                    if config.CACHE_FILE:
+                        with open(config.CACHE_FILE) as fd:
+                            hist = json.load(fd)
+                        hist = [h for h in hist if h['ts'] + config.CACHE_MAX_AGE > now]
+                        host.append({'ts': now, 'line': line})
+                        with open(config.CACHE_FILE, 'w') as fd:
+                            json.dump(hist, fd)
+
                     self.data_lock.acquire()
                     try:
                         for queue in self.clients:
