@@ -45,16 +45,7 @@ def index():
 
 @app.route('/history')
 def history():
-    hist = []
-    if config.CACHE_FILE:
-        with open(config.CACHE_FILE) as fd:
-            hist = json.load(fd)
-
-    def format_entry(entry):
-        dt = datetime.datetime.fromtimestamp(entry['ts']).isoformat()
-        return f"{dt} {entry['line']}"
-
-    text = "\n".join(format_entry(entry) for entry in hist)
+    text = "\n".join(f"{entry['ts'].isoformat()} {entry['line']}" for entry in ser.get_cache())
     return Response(text, mimetype='text/plain')
 
 @app.route('/stats')

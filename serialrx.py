@@ -28,7 +28,6 @@ import collections
 import re
 import time
 import datetime
-import json
 
 import config
 
@@ -125,7 +124,12 @@ class SerialRX(threading.Thread):
         self.line_accumulator = []
         self.last_lines = []
 
+        self.cache = [] # contains [ { 'ts': 'TIMESTAMP', 'line': 'LINE' }, ... ]
+
         print("Serial port ready")
+
+    def get_cache(self):
+        return self.cache
 
     def get_parsed_values(self):
         return self._parser.get_last_data()
@@ -140,21 +144,11 @@ class SerialRX(threading.Thread):
                 try:
                     line = b"".join(self.line_accumulator).decode('ascii')
                     self._parser.parse_message(line)
-                    now = time.time()
+                    now = datetime.datetime.utcnow()
+                    max_age = datetime.timedelta(seconds=config.CACHE_MAX_AGE)
 
-                    try:
-                        if config.CACHE_FILE:
-                            try:
-                                with open(config.CACHE_FILE) as fd:
-                                    hist = json.load(fd)
-                            except:
-                                hist = []
-                            hist = [h for h in hist if h['ts'] + config.CACHE_MAX_AGE > now]
-                            hist.append({'ts': now, 'line': line.strip()})
-                            with open(config.CACHE_FILE, 'w') as fd:
-                                json.dump(hist, fd)
-                    except Exception as e:
-                        print(e)
+                    self.cache = [h for h in self.cache if h['ts'] + max_age > now]
+                    self.cache.append({'ts': now, 'line': line.strip()})
 
                     self.data_lock.acquire()
                     try:

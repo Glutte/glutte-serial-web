@@ -3,9 +3,7 @@ BAUDRATE = 9600
 LINES_TO_KEEP = 200
 LAST_LINE_TO_KEEP = 1000
 
-# cache contains [ { 'ts': 'TIMESTMAP', 'line': 'LINE' } ]
-CACHE_FILE = "/tmp/glutte_serial_web.json"
-CACHE_MAX_AGE = 3600 * 24 * 7
+CACHE_MAX_AGE = 3600 * 24 * 4
 
 TELEGRAM_API_TOKEN = ''
 TELEGRAM_GROUP = ''
