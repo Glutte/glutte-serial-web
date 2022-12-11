@@ -37,6 +37,7 @@ re_num_sv = re.compile(r"\[\d+\] T_GPS.+ (\d+) SV tracked")
 re_alim = re.compile(r"\[(\d+)\] ALIM (\d+) mV")
 re_temp = re.compile(r"\[\d+\] TEMP ([+-]?[0-9.]+)")
 re_relay = re.compile(r"\[\d+\] CC: RELAY,\d+,(On|Off),(On|Off),(On|Off)")
+re_deriv_delta = re.compile(r"\[\d+\] DERIV TS=.* Delta=(-?\d+)")
 
 class MessageParser:
     def __init__(self):
@@ -58,6 +59,8 @@ class MessageParser:
         self._last_temp_time = 0
         self._last_relay = (False, False, False)
         self._last_relay_time = 0
+        self._last_deriv_delta = 0
+        self._last_deriv_delta_time = 0
 
     def parse_message(self, message):
         with self._lock:
@@ -96,16 +99,22 @@ class MessageParser:
                 self._last_relay = (match.group(1) == "On", match.group(2) == "On", match.group(3) == "On")
                 self._last_relay_time = time.time()
 
+            match = re_deriv_delta.search(message)
+            if match:
+                self._last_deriv_delta = int(match.group(1))
+                self._last_deriv_delta_time = time.time()
+
     def get_last_data(self):
         with self._lock:
-            return {"capa": (self._last_cc_capa, self._last_cc_capa_time),
-                    "vbat_plus": (self._last_vbat_plus, self._last_vbat_plus_time),
-                    "alim": (self._last_alim, self._last_alim_time),
-                    "num_sv": (self._last_num_sv, self._last_num_sv_time),
-                    "temp": (self._last_temp, self._last_temp_time),
-                    "relay": (self._last_relay, self._last_relay_time),
-                    "cc_uptime": (self._last_cc_timestamp, self._last_cc_timestamp_time),
-                    "uptime": (self._last_timestamp, self._last_timestamp_time)}
+            return {"capa": (self._last_cc_capa, self._last_cc_capa_time, 60),
+                    "vbat_plus": (self._last_vbat_plus, self._last_vbat_plus_time, 60),
+                    "alim": (self._last_alim, self._last_alim_time, 60),
+                    "num_sv": (self._last_num_sv, self._last_num_sv_time, 60),
+                    "temp": (self._last_temp, self._last_temp_time, 60),
+                    "relay": (self._last_relay, self._last_relay_time, 60),
+                    "deriv_delta": (self._last_deriv_delta, self._last_deriv_delta_time, 3800),
+                    "cc_uptime": (self._last_cc_timestamp, self._last_cc_timestamp_time, 60),
+                    "uptime": (self._last_timestamp, self._last_timestamp_time, 60)}
 
 class SerialRX(threading.Thread):
     def __init__(self):
@@ -215,9 +224,17 @@ if __name__ == "__main__":
     [233465736] TEMP 0.75
     [193692528] TEMP invalid
     [102976] CC: RELAY,721,On,Off,Off
+    [3470371128] DERIV TS=3470370904 Excepted=3470371680 Delta=776
     """
-    test_should = { "capa": 1632682, "vbat_plus": 12340, "alim": 11811, "num_sv": 12, "temp" : 0.75,
-            "relay" : (True, False, False)}
+    test_should = {"capa": 1632682,
+                   "cc_uptime": 148121,
+                   "vbat_plus": 12340,
+                   "alim": 11811,
+                   "num_sv": 12,
+                   "temp": 0.75,
+                   "deriv_delta": 776,
+                   "uptime": int(int(193612144) / 1000),
+                   "relay": (True, False, False)}
 
     mp = MessageParser()
 
@@ -232,8 +249,9 @@ if __name__ == "__main__":
         if test_measured[k][1] == 0:
             print("Value {} has time 0".format(k))
 
-    values = {k: test_measured[k][0] for k in test_measured}
-    if values != test_should:
-        print("invalid values {}".format(values))
+        if test_measured[k][0] == test_should[k]:
+            print(f"Value {k} ok")
+        else:
+            print(f"Value {k} {test_measured[k][0]} not expected {test_should[k]}")
 
     print("Test end")

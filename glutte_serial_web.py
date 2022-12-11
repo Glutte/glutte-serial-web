@@ -56,8 +56,8 @@ def stats():
     out_json = {}
 
     for k in values:
-        value, ts = values[k]
-        if ts + 60 < t_now:
+        value, ts, timeout = values[k]
+        if ts + timeout < t_now:
             out_json[k] = None
         else:
             out_json[k] = value
